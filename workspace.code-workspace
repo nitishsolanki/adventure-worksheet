@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../.openclaw/workspace"
+		},
+		{
+			"path": "../family-os"
+		}
+	],
+	"settings": {
+		"python-envs.defaultEnvManager": "ms-python.python:system"
+	}
+}
