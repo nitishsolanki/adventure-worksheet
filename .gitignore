@@ -1,0 +1,5 @@
+content/
+site/current.html
+site/current.pdf
+__pycache__/
+.venv/
