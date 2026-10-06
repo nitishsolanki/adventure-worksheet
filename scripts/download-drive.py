@@ -1,5 +1,6 @@
 """Download episode files from a shared Google Drive folder."""
 import os
+import json
 from pathlib import Path
 
 from google.oauth2 import service_account
@@ -11,8 +12,20 @@ FOLDER_ID = os.environ["GOOGLE_DRIVE_FOLDER_ID"]
 CREDENTIALS = os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"]
 DESTINATION = Path(os.environ.get("DOWNLOAD_DIRECTORY", "content"))
 
+if not FOLDER_ID.strip():
+    raise RuntimeError("GOOGLE_DRIVE_FOLDER_ID is empty. Add it as a GitHub Actions repository variable.")
+if not CREDENTIALS.strip():
+    raise RuntimeError("GOOGLE_SERVICE_ACCOUNT_JSON is empty. Add the complete service-account JSON as a GitHub Actions repository secret.")
+
+try:
+    credentials_info = json.loads(CREDENTIALS)
+except json.JSONDecodeError as error:
+    raise RuntimeError(
+        "GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON. Paste the complete contents of the downloaded .json key file, not its filename or file path."
+    ) from error
+
 credentials = service_account.Credentials.from_service_account_info(
-    __import__("json").loads(CREDENTIALS), scopes=SCOPES
+    credentials_info, scopes=SCOPES
 )
 drive = build("drive", "v3", credentials=credentials, cache_discovery=False)
 DESTINATION.mkdir(parents=True, exist_ok=True)
