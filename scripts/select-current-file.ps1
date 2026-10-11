@@ -132,11 +132,118 @@ foreach ($episode in $episodes) {
 }
 $page += @"
     </div>
-    <footer>Updated automatically from Google Drive</footer>
+    <footer>Updated automatically from Google Drive · <a href="./archive/">Browse older worksheets</a></footer>
 </main>
 </body>
 </html>
 "@
+
+$archiveManifestPath = Join-Path $source 'archive-manifest.json'
+$archiveSiteDirectory = Join-Path $site 'archive'
+$archiveFilesDirectory = Join-Path $archiveSiteDirectory 'files'
+New-Item -ItemType Directory -Force -Path $archiveFilesDirectory | Out-Null
+Get-ChildItem -LiteralPath $archiveFilesDirectory -File | Remove-Item -Force
+
+$archiveEntries = @()
+if (Test-Path -LiteralPath $archiveManifestPath -PathType Leaf) {
+    $archiveEntries = @(Get-Content -LiteralPath $archiveManifestPath -Raw | ConvertFrom-Json)
+}
+
+$archiveRows = foreach ($grade in @('G1', 'K')) {
+    $gradeEntries = @(
+        $archiveEntries |
+            Where-Object grade -eq $grade |
+            Sort-Object -Property @{ Expression = 'date'; Descending = $true }, kind
+    )
+    if (-not $gradeEntries) { continue }
+
+    $label = if ($grade -eq 'K') { 'Kindergarten' } else { 'Grade 1' }
+    "<section class=""grade""><h2>$label</h2>"
+    foreach ($dateGroup in ($gradeEntries | Group-Object date)) {
+        "<h3>$($dateGroup.Name)</h3>"
+        foreach ($entry in $dateGroup.Group) {
+            $nameMatch = [regex]::Match(
+                $entry.name,
+                '^(G1|K)_(\d{4}-\d{2}-\d{2})(_answers\.pdf|_episode\.html|\.pdf)$'
+            )
+            $archiveDate = [datetime]::MinValue
+            if (
+                -not $nameMatch.Success -or
+                $nameMatch.Groups[1].Value -ne $grade -or
+                $nameMatch.Groups[2].Value -ne $entry.date -or
+                -not [datetime]::TryParseExact(
+                    $entry.date,
+                    'yyyy-MM-dd',
+                    [Globalization.CultureInfo]::InvariantCulture,
+                    [Globalization.DateTimeStyles]::None,
+                    [ref]$archiveDate
+                ) -or
+                $entry.path -ne "archive-downloads/$($entry.output)" -or
+                $entry.output -notmatch '^[A-Za-z0-9_-]+_(G1|K)_\d{4}-\d{2}-\d{2}(_answers\.pdf|_episode\.html|\.pdf)$'
+            ) {
+                throw "Invalid archive manifest entry for '$($entry.name)'."
+            }
+            $sourceFile = Join-Path $source $entry.path
+            if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
+                throw "Archive file from manifest was not downloaded: $($entry.name)"
+            }
+            $destination = Join-Path $archiveFilesDirectory $entry.output
+            Copy-Item -LiteralPath $sourceFile -Destination $destination -Force
+            $href = "./files/$([uri]::EscapeDataString($entry.output))"
+            $linkLabel = switch ($entry.kind) {
+                'episode' { 'Episode HTML' }
+                'questions' { 'Questions PDF' }
+                'answers' { 'Answers PDF' }
+                default { throw "Unknown archive file type '$($entry.kind)' for $($entry.name)." }
+            }
+            "<a class=""archive-link"" href=""$href"" download>Download $linkLabel</a>"
+        }
+    }
+    '</section>'
+}
+
+$archivePage = @"
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worksheet Archive | Adventure Worksheet</title>
+<style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 32px 20px; color: #172033; background: linear-gradient(135deg, #eef6ff 0%, #f7f3ff 52%, #fff8ed 100%); }
+    main { width: min(100%, 900px); margin: 0 auto; padding: clamp(24px, 6vw, 52px); background: rgba(255,255,255,.94); border-radius: 24px; box-shadow: 0 24px 70px rgba(53, 63, 99, .16); }
+    h1 { margin-top: 0; }
+    .back { color: #4f46e5; font-weight: 700; }
+    .grades { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 28px; }
+    .grade { padding: 22px; border: 1px solid #eaecf0; border-radius: 16px; }
+    .grade h2 { margin-top: 0; }
+    .archive-link { display: block; padding: 12px 0; border-top: 1px solid #eaecf0; color: #3730a3; text-decoration: none; }
+    .archive-link:hover { text-decoration: underline; }
+    .empty { color: #667085; }
+</style>
+</head>
+<body>
+<main>
+    <a class="back" href="../">← Current worksheets</a>
+    <h1>Worksheet archive</h1>
+    <p>Browse and download older worksheets by grade and episode date.</p>
+    <div class="grades">
+"@
+if ($archiveRows) {
+    $archivePage += ($archiveRows -join "`n")
+} else {
+    $archivePage += '<p class="empty">No archived worksheet files are available yet.</p>'
+}
+$archivePage += @"
+    </div>
+</main>
+</body>
+</html>
+"@
+Set-Content -LiteralPath (Join-Path $archiveSiteDirectory 'index.html') -Value $archivePage -Encoding utf8
+
 Set-Content -LiteralPath (Join-Path $site 'index.html') -Value $page -Encoding utf8
 
 foreach ($episode in $episodes) {

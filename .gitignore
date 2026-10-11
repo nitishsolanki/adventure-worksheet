@@ -1,6 +1,7 @@
 content/
 site/current-g1-*
 site/current-k-*
+site/archive/
 __pycache__/
 .venv/
 

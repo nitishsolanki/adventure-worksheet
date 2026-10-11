@@ -46,7 +46,12 @@ section on the public landing page.
 The GitHub Pages site contains:
 
 - `index.html` — a landing page with separate Grade 1 and Kindergarten
-  sections, selected dates, and three links in each section.
+  sections, selected dates, three links in each section, and a link to the
+  older worksheet archive.
+- `archive/index.html` — an archive browser grouped by grade, episode date,
+  and file type, with direct downloads.
+- `archive/files/` — the archived worksheet files linked from the archive
+  browser.
 - `current-g1-questions.pdf`, `current-g1-answers.pdf`, and
   `current-g1-episode.html` — the selected Grade 1 files.
 - `current-k-questions.pdf`, `current-k-answers.pdf`, and
@@ -55,6 +60,13 @@ The GitHub Pages site contains:
 Each link on the landing page points to one of these six grade-specific files.
 The filenames are stable, so the links do not change when new episodes are
 selected.
+
+The archive page mirrors matching dated G1 and K files from the Google Drive
+`Backup` subfolder. It lists the episode HTML, questions PDF, and answers PDF
+individually, newest dates first within each grade. Files are refreshed each
+time the publishing workflow runs. Since GitHub Pages is public, every file
+copied into the archive is publicly downloadable; only put materials there
+that are intended for public access.
 
 ## Automation
 
@@ -66,9 +78,9 @@ The workflow is defined in
   check handle daylight saving time.
 - On demand through **Actions → Publish Adventure Worksheet → Run workflow**.
 
-The workflow checks the Drive configuration, downloads source files, selects
-the episode, generates the Pages site, and deploys it to the `github-pages`
-environment.
+The workflow checks the Drive configuration, downloads current and archived
+source files, selects the episode, generates the Pages site and archive, and
+deploys them to the `github-pages` environment.
 
 Episode selection and site generation are handled by
 [`scripts/select-current-file.ps1`](scripts/select-current-file.ps1):
@@ -86,9 +98,10 @@ The build fails rather than deploying a landing page with missing files if
 either grade has no valid episode or one of its selected episode files is
 missing or empty.
 
-The Drive download is implemented in
-[`scripts/download-drive.py`](scripts/download-drive.py). Dependencies are
-listed in [`requirements.txt`](requirements.txt).
+The Drive download, including matching files from the `Backup` subfolder, is
+implemented in [`scripts/download-drive.py`](scripts/download-drive.py). The
+PowerShell script copies archived downloads into the site and generates the
+archive page. Dependencies are listed in [`requirements.txt`](requirements.txt).
 
 ## GitHub setup
 
@@ -131,7 +144,9 @@ pwsh -File .\scripts\select-current-file.ps1
 ```
 
 This generates the `site/` directory from files already in `content/`; both
-grades must have a valid matching set. To run the Drive download locally, set
+grades must have a valid matching set. To generate the archive page locally,
+place `archive-manifest.json` and its referenced files under `content/` as
+produced by the Drive download. To run the Drive download locally, set
 `GOOGLE_DRIVE_FOLDER_ID` and
 `GOOGLE_SERVICE_ACCOUNT_JSON` in the environment, then run:
 
