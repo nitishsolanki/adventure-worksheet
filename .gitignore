@@ -1,5 +1,5 @@
 content/
-site/current.html
-site/current.pdf
+site/current-g1-*
+site/current-k-*
 __pycache__/
 .venv/

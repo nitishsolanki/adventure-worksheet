@@ -32,7 +32,7 @@ DESTINATION.mkdir(parents=True, exist_ok=True)
 
 query = (
     f"'{FOLDER_ID}' in parents and trashed = false and "
-    "(name contains 'G1_' or name contains '.html' or name contains '.pdf')"
+    "(name contains 'G1_' or name contains 'K_')"
 )
 files = []
 page_token = None
@@ -51,7 +51,14 @@ while True:
 
 for item in files:
     name = item["name"]
-    if not (name.startswith("G1_") and (name.endswith("_episode.html") or name.endswith(".pdf"))):
+    if not (
+        name.startswith(("G1_", "K_"))
+        and (
+            name.endswith("_episode.html")
+            or name.endswith("_answers.pdf")
+            or name.endswith(".pdf")
+        )
+    ):
         continue
     request = drive.files().get_media(fileId=item["id"])
     destination = DESTINATION / name
