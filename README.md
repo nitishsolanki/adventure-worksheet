@@ -74,7 +74,7 @@ The workflow is defined in
 [`.github/workflows/publish.yml`](.github/workflows/publish.yml). It runs:
 
 - On pushes to `main`.
-- Once per day at 4:30 p.m. Central Time. Two UTC cron entries and a schedule
+- Once per day at 2:00 p.m. Central Time. Two UTC cron entries and a schedule
   check handle daylight saving time.
 - On demand through **Actions → Publish Adventure Worksheet → Run workflow**.
 

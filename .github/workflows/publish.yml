@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '30 21 * * *'
-    - cron: '30 22 * * *'
+    - cron: '0 19 * * *'
+    - cron: '0 20 * * *'
   workflow_dispatch:
 
 permissions:
@@ -35,8 +35,8 @@ jobs:
           fi
 
           central_offset=$(TZ=America/Chicago date +%z)
-          if { [ "$central_offset" = "-0500" ] && [ "$SCHEDULE" = "30 21 * * *" ]; } ||
-             { [ "$central_offset" = "-0600" ] && [ "$SCHEDULE" = "30 22 * * *" ]; }; then
+          if { [ "$central_offset" = "-0500" ] && [ "$SCHEDULE" = "0 19 * * *" ]; } ||
+             { [ "$central_offset" = "-0600" ] && [ "$SCHEDULE" = "0 20 * * *" ]; }; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
