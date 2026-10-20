@@ -1,8 +1,8 @@
 # Adventure Worksheet
 
-This project automatically publishes Adventure Worksheet episodes for Grade 1
-(G1) and Kindergarten (K) to GitHub Pages. It reads episode files from a Google
-Drive folder and selects the current-date episode for each grade when available
+This project automatically publishes Adventure Worksheet episodes for every
+available grade (`K`, `G1`, `G2`, and so on) to GitHub Pages. It reads episode
+files from a Google Drive folder and selects the current-date episode for each grade when available
 (otherwise that grade's newest available episode). The landing page provides
 three links per grade: questions PDF, answers PDF, and episode HTML.
 
@@ -35,8 +35,8 @@ The date in the filename is the episode date; the workflow does not use Drive's
 upload or modification time. G1 and K dates are selected independently, so the
 grades may show different episode dates when their latest files differ.
 
-The downloader looks in the configured Drive folder for both `G1_` and `K_`
-files. For each grade, publishing requires a dated episode HTML, matching
+The downloader looks in the configured Drive folder for all supported grade
+prefixes. For each grade, publishing requires a dated episode HTML, matching
 questions PDF (`<grade>_YYYY-MM-DD.pdf`), and matching answers PDF
 (`<grade>_YYYY-MM-DD_answers.pdf`). All three are included in that grade's
 section on the public landing page.
@@ -45,7 +45,7 @@ section on the public landing page.
 
 The GitHub Pages site contains:
 
-- `index.html` — a landing page with separate Grade 1 and Kindergarten
+- `index.html` — a landing page with a separate section for every available grade
   sections, selected dates, three links in each section, and a link to the
   older worksheet archive.
 - `archive/index.html` — an archive browser grouped by grade, episode date,
@@ -61,7 +61,7 @@ Each link on the landing page points to one of these six grade-specific files.
 The filenames are stable, so the links do not change when new episodes are
 selected.
 
-The archive page mirrors matching dated G1 and K files from the Google Drive
+The archive page mirrors matching dated files for every available grade from the Google Drive
 `Backup` subfolder. It lists the episode HTML, questions PDF, and answers PDF
 individually, newest dates first within each grade. Files are refreshed each
 time the publishing workflow runs. Since GitHub Pages is public, every file
@@ -85,7 +85,7 @@ deploys them to the `github-pages` environment.
 Episode selection and site generation are handled by
 [`scripts/select-current-file.ps1`](scripts/select-current-file.ps1):
 
-1. For each grade (`G1` and `K`), look for HTML filenames exactly matching
+1. For each discovered grade (`K`, `G1`, `G2`, and so on), look for HTML filenames exactly matching
    `<grade>_YYYY-MM-DD_episode.html`.
 2. Prefer a file whose date is today; otherwise select that grade's newest
    dated HTML file.
@@ -94,8 +94,8 @@ Episode selection and site generation are handled by
 4. Copy the three files for each grade into `site/` under stable grade-specific
    filenames, and generate `site/index.html` with three links per grade.
 
-The build fails rather than deploying a landing page with missing files if
-either grade has no valid episode or one of its selected episode files is
+The build fails rather than deploying a landing page with missing files if a
+discovered grade has no valid episode or one of its selected episode files is
 missing or empty.
 
 The Drive download, including matching files from the `Backup` subfolder, is

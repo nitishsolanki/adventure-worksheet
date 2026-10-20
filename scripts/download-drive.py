@@ -60,21 +60,12 @@ def download_file(item, destination):
             _, done = downloader.next_chunk()
 
 
-root_query = (
-    f"'{FOLDER_ID}' in parents and trashed = false and "
-    "(name contains 'G1_' or name contains 'K_')"
-)
+root_query = f"'{FOLDER_ID}' in parents and trashed = false"
 files = list_drive_files(root_query)
+worksheet_pattern = re.compile(r"^(K|G\d+)_\d{4}-\d{2}-\d{2}(_answers\.pdf|_episode\.html|\.pdf)$")
 for item in files:
     name = item["name"]
-    if not (
-        name.startswith(("G1_", "K_"))
-        and (
-            name.endswith("_episode.html")
-            or name.endswith("_answers.pdf")
-            or name.endswith(".pdf")
-        )
-    ):
+    if not worksheet_pattern.fullmatch(name):
         continue
     destination = DESTINATION / name
     download_file(item, destination)
@@ -90,7 +81,7 @@ for existing_file in ARCHIVE_DIRECTORY.iterdir():
 
 archive_files = []
 archive_pattern = re.compile(
-    r"^(G1|K)_(\d{4}-\d{2}-\d{2})(_answers\.pdf|_episode\.html|\.pdf)$"
+    r"^(K|G\d+)_(\d{4}-\d{2}-\d{2})(_answers\.pdf|_episode\.html|\.pdf)$"
 )
 for backup_folder in archive_folders:
     query = f"'{backup_folder['id']}' in parents and trashed = false"

@@ -69,10 +69,15 @@ function Get-SelectedEpisode {
     }
 }
 
-$episodes = @(
-    Get-SelectedEpisode -Grade 'G1'
-    Get-SelectedEpisode -Grade 'K'
-)
+$gradeNames = Get-ChildItem -LiteralPath $source -File -Filter '*_episode.html' |
+    ForEach-Object {
+        $match = [regex]::Match($_.Name, '^(K|G\d+)_\d{4}-\d{2}-\d{2}_episode\.html$')
+        if ($match.Success) { $match.Groups[1].Value }
+    } |
+    Sort-Object -Unique -Property @{ Expression = { if ($_ -eq 'K') { 0 } else { [int]$_.Substring(1) + 1 } } }
+
+if (-not $gradeNames) { throw "No worksheet episode files were found in $source." }
+$episodes = @($gradeNames | ForEach-Object { Get-SelectedEpisode -Grade $_ })
 
 foreach ($episode in $episodes) {
     $gradeLower = $episode.Grade.ToLowerInvariant()
@@ -118,9 +123,10 @@ $page = @"
 "@
 foreach ($episode in $episodes) {
     $gradeLower = $episode.Grade.ToLowerInvariant()
+    $gradeLabel = if ($episode.Grade -eq 'K') { 'Kindergarten' } else { "Grade $($episode.Grade.Substring(1))" }
     $page += @"
         <section class="grade">
-            <h2>$($episode.Grade)$(if ($episode.Grade -eq 'K') { ' (Kindergarten)' } else { ' (Grade 1)' })</h2>
+            <h2>$($episode.Grade) ($gradeLabel)</h2>
             <div class="episode">Episode $($episode.Selected.DateText)</div>
             <div class="actions">
                 <a class="button questions-button" href="./current-$gradeLower-questions.pdf" download>Download questions PDF</a>
@@ -149,7 +155,8 @@ if (Test-Path -LiteralPath $archiveManifestPath -PathType Leaf) {
     $archiveEntries = @(Get-Content -LiteralPath $archiveManifestPath -Raw | ConvertFrom-Json)
 }
 
-$archiveRows = foreach ($grade in @('G1', 'K')) {
+$archiveGrades = @($archiveEntries | ForEach-Object { $_.grade } | Where-Object { $_ -match '^(K|G\d+)$' } | Sort-Object -Unique -Property @{ Expression = { if ($_ -eq 'K') { 0 } else { [int]$_.Substring(1) + 1 } } })
+$archiveRows = foreach ($grade in $archiveGrades) {
     $gradeEntries = @(
         $archiveEntries |
             Where-Object grade -eq $grade |
@@ -157,14 +164,14 @@ $archiveRows = foreach ($grade in @('G1', 'K')) {
     )
     if (-not $gradeEntries) { continue }
 
-    $label = if ($grade -eq 'K') { 'Kindergarten' } else { 'Grade 1' }
+    $label = if ($grade -eq 'K') { 'Kindergarten' } else { "Grade $($grade.Substring(1))" }
     "<section class=""grade""><h2>$label</h2>"
     foreach ($dateGroup in ($gradeEntries | Group-Object date)) {
         "<h3>$($dateGroup.Name)</h3>"
         foreach ($entry in $dateGroup.Group) {
             $nameMatch = [regex]::Match(
                 $entry.name,
-                '^(G1|K)_(\d{4}-\d{2}-\d{2})(_answers\.pdf|_episode\.html|\.pdf)$'
+                '^(K|G\d+)_(\d{4}-\d{2}-\d{2})(_answers\.pdf|_episode\.html|\.pdf)$'
             )
             $archiveDate = [datetime]::MinValue
             if (
@@ -179,7 +186,7 @@ $archiveRows = foreach ($grade in @('G1', 'K')) {
                     [ref]$archiveDate
                 ) -or
                 $entry.path -ne "archive-downloads/$($entry.output)" -or
-                $entry.output -notmatch '^[A-Za-z0-9_-]+_(G1|K)_\d{4}-\d{2}-\d{2}(_answers\.pdf|_episode\.html|\.pdf)$'
+                $entry.output -notmatch '^[A-Za-z0-9_-]+_(K|G\d+)_\d{4}-\d{2}-\d{2}(_answers\.pdf|_episode\.html|\.pdf)$'
             ) {
                 throw "Invalid archive manifest entry for '$($entry.name)'."
             }
